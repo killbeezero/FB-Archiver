@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "FB 自動封存舊貼文",
+  "version": "1.0",
+  "description": "自動將 Facebook 個人頁面上超過指定天數的貼文移到儲藏盒",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": [
+    "https://www.facebook.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "FB 自動封存舊貼文"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.facebook.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}

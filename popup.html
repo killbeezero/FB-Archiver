@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FB 自動封存舊貼文</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', '微軟正黑體', sans-serif;
+      background: #f0f2f5;
+      color: #1c1e21;
+    }
+
+    /* 頂部標題列 */
+    .header {
+      background: #1877f2;
+      color: white;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-icon {
+      font-size: 24px;
+    }
+
+    .header-title {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .header-subtitle {
+      font-size: 11px;
+      opacity: 0.85;
+      margin-top: 2px;
+    }
+
+    /* 主要內容區 */
+    .content {
+      padding: 16px;
+    }
+
+    /* 設定區塊 */
+    .setting-card {
+      background: white;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .setting-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #65676b;
+      margin-bottom: 8px;
+    }
+
+    .days-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .days-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: #e4e6eb;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1877f2;
+      transition: background 0.15s;
+    }
+
+    .days-btn:hover {
+      background: #d8dadf;
+    }
+
+    .days-display {
+      flex: 1;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 700;
+      color: #1877f2;
+    }
+
+    .days-unit {
+      font-size: 13px;
+      color: #65676b;
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    /* 警告提示 */
+    .warning {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #856404;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .warning-icon {
+      font-size: 14px;
+      margin-right: 4px;
+    }
+
+    /* 按鈕 */
+    .btn-start {
+      width: 100%;
+      padding: 12px;
+      background: #1877f2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-start:hover:not(:disabled) {
+      background: #1557b0;
+    }
+
+    .btn-start:disabled {
+      background: #bcc0c4;
+      cursor: not-allowed;
+    }
+
+    .btn-stop {
+      width: 100%;
+      padding: 12px;
+      background: #fa3e3e;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.15s;
+      display: none;
+    }
+
+    .btn-stop:hover {
+      background: #d63030;
+    }
+
+    /* 進度顯示區 */
+    .progress-card {
+      background: white;
+      border-radius: 10px;
+      padding: 14px;
+      margin-top: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      display: none;
+    }
+
+    .progress-bar-wrap {
+      background: #e4e6eb;
+      border-radius: 4px;
+      height: 6px;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: #1877f2;
+      border-radius: 4px;
+      width: 0%;
+      transition: width 0.3s;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .progress-bar.done {
+      animation: none;
+      background: #42b72a;
+      width: 100%;
+    }
+
+    .progress-message {
+      font-size: 13px;
+      color: #1c1e21;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .stats-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .stat-item {
+      flex: 1;
+      background: #f0f2f5;
+      border-radius: 6px;
+      padding: 6px;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .stat-number.archived { color: #42b72a; }
+    .stat-number.skipped  { color: #65676b; }
+    .stat-number.errors   { color: #fa3e3e; }
+
+    .stat-label {
+      font-size: 11px;
+      color: #65676b;
+      margin-top: 2px;
+    }
+
+    /* 提示：需先到個人頁面 */
+    .notice {
+      font-size: 12px;
+      color: #65676b;
+      text-align: center;
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+
+    .notice a {
+      color: #1877f2;
+      text-decoration: none;
+    }
+
+    /* 頁面未在 FB 時的提示 */
+    .not-fb {
+      padding: 20px 16px;
+      text-align: center;
+    }
+
+    .not-fb-icon {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+
+    .not-fb-text {
+      font-size: 14px;
+      color: #65676b;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-icon">📦</div>
+    <div>
+      <div class="header-title">FB 自動封存舊貼文</div>
+      <div class="header-subtitle">自動將舊貼文移到儲藏盒</div>
+    </div>
+  </div>
+
+  <!-- 主要操作介面 -->
+  <div id="mainUI" class="content">
+
+    <!-- 天數設定 -->
+    <div class="setting-card">
+      <div class="setting-label">⏰ 封存超過幾天的貼文？</div>
+      <div class="days-control">
+        <button class="days-btn" id="btnMinus">−</button>
+        <div>
+          <div class="days-display" id="daysDisplay">2</div>
+          <div class="days-unit">天</div>
+        </div>
+        <button class="days-btn" id="btnPlus">＋</button>
+      </div>
+    </div>
+
+    <!-- 警告提示 -->
+    <div class="warning">
+      <span class="warning-icon">⚠️</span>
+      操作無法復原，被封存的貼文可在「儲藏盒」中找回。<br>
+      <strong>請先前往自己的個人頁面</strong>再按下開始。
+    </div>
+
+    <!-- 開始按鈕 -->
+    <button class="btn-start" id="btnStart">🚀 開始封存舊貼文</button>
+    <button class="btn-stop" id="btnStop">⏹ 停止</button>
+
+    <!-- 進度顯示 -->
+    <div class="progress-card" id="progressCard">
+      <div class="progress-bar-wrap">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <div class="progress-message" id="progressMessage">準備中...</div>
+      <div class="stats-row">
+        <div class="stat-item">
+          <div class="stat-number archived" id="statArchived">0</div>
+          <div class="stat-label">已封存</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number skipped" id="statSkipped">0</div>
+          <div class="stat-label">略過</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number errors" id="statErrors">0</div>
+          <div class="stat-label">失敗</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notice">
+      請先到
+      <a href="https://www.facebook.com/me" target="_blank">自己的 Facebook 個人頁面</a>
+      再使用此工具
+    </div>
+
+  </div>
+
+  <!-- 非 Facebook 頁面時顯示 -->
+  <div id="notFbUI" class="not-fb" style="display:none">
+    <div class="not-fb-icon">🔒</div>
+    <div class="not-fb-text">
+      請先開啟 Facebook 個人頁面<br>
+      再點擊此 Extension<br><br>
+      <a href="https://www.facebook.com/me" target="_blank" style="color:#1877f2">👉 前往我的 Facebook 頁面</a>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
